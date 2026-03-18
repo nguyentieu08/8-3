@@ -1,67 +1,95 @@
 <!DOCTYPE html>
-<html lang="en">
-  <head>
-    <meta charset="UTF-8" />
-    <meta http-equiv="X-UA-Compatible" content="IE=edge" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <link
-      rel="stylesheet"
-      href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.3.0/css/all.min.css"
-      integrity="sha512-SzlrxWUlpfuzQ+pcUCosxcglQRNAq/DZjVsC0lE40xsADsfeQoEypE+enwcOiGjk/bSuGGKHEyjSoQ1zVisanQ=="
-      crossorigin="anonymous"
-      referrerpolicy="no-referrer"
-    />
-    <link
-      rel="icon"
-      href="https://scontent.fsgn2-7.fna.fbcdn.net/v/t39.30808-6/275854716_1009516859998712_3360791562563963516_n.jpg?_nc_cat=100&ccb=1-7&_nc_sid=174925&_nc_ohc=Nd-x8LBVkfEAX-8j_3d&_nc_ht=scontent.fsgn2-7.fna&oh=00_AfCE12FbrIzhS4MFFIpLnp91XXbAS27AcV3yTsAqHtNIHw&oe=640ADB19"
-    />
-    <link rel="stylesheet" href="style.css" />
-    <title>Gửi Bé Iu Của Anh❤</title>
-  </head>
-  <body>
-    <div class="wrapper">
-      <div class="loader">
-        <div class="cardHover">
-          <div class="inner one" style="--i: 1"></div>
-          <div class="inner two" style="--i: 1"></div>
-          <div class="inner three" style="--i: 1"></div>
-          <div class="box-heart">
-            <div class="heart"></div>
-          </div>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SifexPing - Hệ Thống Key Tự Động</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        body { background: #050505; color: #00E6FF; font-family: 'Segoe UI', sans-serif; }
+        .neon-border { border: 2px solid #00E6FF; box-shadow: 0 0 15px rgba(0, 230, 255, 0.3); }
+        .key-text { text-shadow: 0 0 10px #00E6FF; }
+    </style>
+</head>
+<body class="flex items-center justify-center min-h-screen p-4">
+
+    <div class="max-w-md w-full bg-[#0A0A0A] p-8 rounded-3xl neon-border text-center">
+        <h1 class="text-3xl font-bold mb-2">XÁC THỰC XONG</h1>
+        <p class="text-gray-400 text-sm mb-8 italic">Cảm ơn bạn đã ủng hộ SifexPing Pro!</p>
+
+        <div class="bg-[#111] border-2 border-dashed border-[#00E6FF] p-6 rounded-2xl mb-6 relative group cursor-pointer" onclick="copyKey()">
+            <span id="keyDisplay" class="text-2xl font-mono font-bold tracking-widest key-text">ĐANG TẠO...</span>
+            <div id="copyTooltip" class="absolute -top-8 left-1/2 -translate-x-1/2 bg-green-500 text-black text-xs px-2 py-1 rounded hidden">Đã chép!</div>
         </div>
-      </div>
-      <button><p>Nhấn vào đây đi bé iu~~~❤</p></button>
-      <div class="content">
-        <i class="fa-solid fa-xmark"></i>
-        <h1>Gửi em!</h1>
-        <p>
-          "💞Anh ước rằng mình có thể gặp em sớm hơn thì những vất vả mà em trải
-          qua sẽ có anh bên cạnh.💗 Từ nay về sau, trách nhiệm của anh là chăm
-          sóc và thay em gánh chịu khó khăn. Vì thế, hãy thật hạnh phúc và vui
-          vẻ, đừng bận tâm về thế giới, vì xung quanh em chính là anh. Chúc em
-          8/3 ấm áp, mãi yêu em.💞"
-        </p>
-      </div>
+
+        <p class="text-xs text-gray-500 mb-6">Lưu ý: Key có hạn dùng 24h và chỉ sử dụng cho 1 thiết bị duy nhất khi đã kích hoạt.</p>
+        
+        <button id="btnGen" onclick="location.reload()" class="w-full bg-[#00E6FF] text-black font-bold py-3 rounded-xl hover:opacity-80 transition active:scale-95">
+            LẤY KEY MỚI
+        </button>
+
+        <div id="status" class="mt-4 text-[10px] text-gray-600 uppercase tracking-tighter">Đang kết nối cơ sở dữ liệu...</div>
     </div>
-  </body>
-  <script type="text/javascript" src="vanilla-tilt.js"></script>
-  <script>
-    VanillaTilt.init(document.querySelector(".wrapper"), {
-      max: 25,
-      speed: 400,
-      glare: true,
-      "max-glare": 0.25,
-      gyroscopeMinAngleX: -45,
-    });
-    var btn = document.querySelector("button");
-    var closeBtn = document.querySelector(".fa-xmark");
-    btn.addEventListener("click", () => {
-      document.querySelector(".wrapper").classList.add("active");
-      btn.style.display = "none";
-    });
-    closeBtn.addEventListener("click", () => {
-      document.querySelector(".wrapper").classList.remove("active");
-      btn.style.display = "block";
-    });
-  </script>
+
+    <!-- Firebase SDK -->
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/11.4.0/firebase-app.js";
+        import { getFirestore, doc, setDoc } from "https://www.gstatic.com/firebasejs/11.4.0/firebase-firestore.js";
+
+        // THAY THẾ CẤU HÌNH FIREBASE CỦA BẠN VÀO ĐÂY
+        const firebaseConfig = {
+            apiKey: "", // Bạn lấy trong Firebase Console -> Project Settings
+            authDomain: "your-project.firebaseapp.com",
+            projectId: "your-project",
+            storageBucket: "your-project.appspot.com",
+            messagingSenderId: "12345",
+            appId: "1:12345:web:abc"
+        };
+
+        const app = initializeApp(firebaseConfig);
+        const db = getFirestore(app);
+
+        async function createNewKey() {
+            const keyEl = document.getElementById('keyDisplay');
+            const statusEl = document.getElementById('status');
+            
+            // 1. Tạo mã Key ngẫu nhiên
+            const randomID = Math.random().toString(36).substring(2, 10).toUpperCase();
+            const fullKey = "SIFEX-" + randomID;
+
+            // 2. Tính ngày hết hạn (Hôm nay + 1 ngày)
+            const expiry = new Date();
+            expiry.setDate(expiry.getDate() + 1);
+            const expiryStr = expiry.toISOString().split('T')[0]; // Định dạng yyyy-mm-dd
+
+            try {
+                // 3. Đẩy lên Firestore (Collection: keys, Document: tên key)
+                await setDoc(doc(db, "keys", fullKey), {
+                    expiry: expiryStr,
+                    deviceId: "" // Để trống để App Android tự khóa vào sau
+                });
+
+                keyEl.innerText = fullKey;
+                statusEl.innerText = "Đã lưu mã thành công!";
+                statusEl.classList.add('text-green-500');
+            } catch (error) {
+                keyEl.innerText = "LỖI KẾT NỐI";
+                statusEl.innerText = "Lỗi: " + error.message;
+                statusEl.classList.add('text-red-500');
+            }
+        }
+
+        window.copyKey = () => {
+            const text = document.getElementById('keyDisplay').innerText;
+            if (text.includes("...")) return;
+            navigator.clipboard.writeText(text);
+            const tip = document.getElementById('copyTooltip');
+            tip.classList.remove('hidden');
+            setTimeout(() => tip.classList.add('hidden'), 1500);
+        };
+
+        createNewKey();
+    </script>
+</body>
 </html>
+
