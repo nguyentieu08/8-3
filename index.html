@@ -10,11 +10,11 @@
         body { background: var(--bg); color: white; font-family: 'Segoe UI', sans-serif; display: flex; justify-content: center; align-items: center; height: 100vh; margin: 0; overflow: hidden; }
         .card { background: rgba(10,10,10,0.95); border: 2px solid var(--neon); padding: 40px 30px; border-radius: 25px; text-align: center; box-shadow: 0 0 30px rgba(0,230,255,0.3); width: 90%; max-width: 420px; position: relative; }
         h2 { color: var(--neon); text-shadow: 0 0 10px var(--neon); letter-spacing: 2px; margin-bottom: 5px; }
-        .status { font-size: 13px; color: #888; margin-bottom: 25px; }
+        .status { font-size: 13px; color: #888; margin-bottom: 25px; min-height: 20px; }
         .loader { border: 4px solid #111; border-top: 4px solid var(--neon); border-radius: 50%; width: 40px; height: 40px; animation: spin 1s linear infinite; margin: 20px auto; display: none; }
         @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
         .btn { background: var(--neon); color: black; border: none; padding: 16px; border-radius: 12px; font-weight: bold; cursor: pointer; width: 100%; transition: 0.3s; font-size: 15px; text-transform: uppercase; margin-top: 10px; text-decoration: none; display: block; }
-        .btn:hover { transform: scale(1.02); box-shadow: 0 0 15px var(--neon); }
+        .btn:disabled { background: #333; color: #666; cursor: not-allowed; }
         .key-box { display: none; margin-top: 10px; animation: fadeIn 0.5s; }
         @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
         .key-display { font-size: 19px; color: #FFEB3B; font-weight: bold; background: #1a1a1a; padding: 18px; border-radius: 12px; border: 1px solid rgba(255,235,59,0.3); display: block; margin: 15px 0; word-break: break-all; letter-spacing: 1px; }
@@ -27,8 +27,8 @@
         <div class="loader" id="loader"></div>
 
         <div id="step-start">
-            <p style="font-size: 14px; line-height: 1.6; color: #ccc; margin-bottom: 20px;">Vui lòng vượt link để hệ thống tự động cập nhật Key mới vào máy chủ GitHub.</p>
-            <button class="btn" onclick="generateShortLink()">BẮT ĐẦU LẤY KEY</button>
+            <p style="font-size: 14px; line-height: 1.6; color: #ccc; margin-bottom: 20px;">Hệ thống đang sẵn sàng. Nhấn nút để bắt đầu lấy link rút gọn.</p>
+            <button id="btn-main" class="btn" onclick="generateShortLink()">LẤY KEY TỰ ĐỘNG</button>
         </div>
 
         <div id="step-result" class="key-box">
@@ -36,12 +36,10 @@
             <p style="font-size: 12px; color: #888;">Dữ liệu đã được ghi đè lên GitHub</p>
             <span class="key-display" id="final-key">...</span>
             <button class="btn" onclick="copyKey()">SAO CHÉP MÃ KEY</button>
-            <p style="font-size: 11px; color: #555; margin-top: 15px;">Key có hiệu lực trong 24h trên thiết bị này.</p>
         </div>
     </div>
 
     <script>
-        // --- CẤU HÌNH HỆ THỐNG ---
         const GITHUB_USER = "nguyentieu08";
         const GITHUB_REPO = "SifexPing_Key";
         const GITHUB_FILE = "keys.txt";
@@ -52,7 +50,6 @@
         const deviceId = params.get('device') || "DEVICE_ERROR";
         const isDone = params.get('done') === 'true';
 
-        // Nếu đã vượt link xong (callback trả về)
         if (isDone) {
             document.getElementById('step-start').style.display = 'none';
             document.getElementById('status-text').innerText = "Đang xử lý dữ liệu GitHub...";
@@ -60,33 +57,56 @@
             processKeyUpdate();
         }
 
-        function generateShortLink() {
+        async function generateShortLink() {
             if(deviceId === "DEVICE_ERROR") {
-                alert("Lỗi: Không tìm thấy Device ID. Vui lòng mở từ App!");
+                alert("Lỗi: Vui lòng mở trang web này từ ứng dụng SifexPing!");
                 return;
             }
+
+            const btn = document.getElementById('btn-main');
+            const status = document.getElementById('status-text');
+            const loader = document.getElementById('loader');
+
+            btn.disabled = true;
+            status.innerText = "Đang tạo link vượt (Link4M)...";
+            loader.style.display = "block";
+
             const currentUrl = window.location.href.split('?')[0];
             const callbackUrl = `${currentUrl}?device=${deviceId}&done=true`;
-            // Chuyển hướng qua API Link4M để rút gọn link
-            window.location.href = `https://link4m.co/api-shorten/v2?api=${LINK4M_API}&url=${encodeURIComponent(callbackUrl)}`;
+            const apiUrl = `https://link4m.co/api-shorten/v2?api=${LINK4M_API}&url=${encodeURIComponent(callbackUrl)}`;
+
+            try {
+                // Thay vì chuyển hướng trực tiếp, ta fetch để lấy link rút gọn
+                const response = await fetch(apiUrl);
+                const data = await response.json();
+
+                if (data.status === "success" && data.shortenedUrl) {
+                    // Chuyển hướng người dùng đến trang vượt link thực tế
+                    window.location.href = data.shortenedUrl;
+                } else {
+                    throw new Error(data.message || "Lỗi không xác định từ Link4M");
+                }
+            } catch (err) {
+                loader.style.display = "none";
+                btn.disabled = false;
+                status.innerText = "Lỗi tạo link. Vui lòng thử lại!";
+                alert("Lỗi: " + err.message);
+            }
         }
 
         async function processKeyUpdate() {
             try {
-                // 1. Tạo Secret mới ngẫu nhiên (Đây sẽ là nội dung file keys.txt)
                 const newSecret = "SFX-" + Math.random().toString(36).substring(2, 12).toUpperCase();
-                
-                // 2. Lấy SHA của file hiện tại từ GitHub
                 const apiUrl = `https://api.github.com/repos/${GITHUB_USER}/${GITHUB_REPO}/contents/${GITHUB_FILE}`;
+                
                 const getRes = await fetch(apiUrl, {
                     headers: { "Authorization": `token ${GITHUB_TOKEN}` }
                 });
                 
-                if (!getRes.ok) throw new Error("GitHub API Error: " + getRes.status);
+                if (!getRes.ok) throw new Error("GitHub Connection Error");
                 const fileData = await getRes.json();
                 const currentSha = fileData.sha;
 
-                // 3. Thực hiện ghi đè nội dung mới lên GitHub
                 const updateRes = await fetch(apiUrl, {
                     method: "PUT",
                     headers: { 
@@ -95,25 +115,23 @@
                     },
                     body: JSON.stringify({
                         message: `AutoUpdate: Device ${deviceId}`,
-                        content: btoa(newSecret), // Encode Base64 cho GitHub
+                        content: btoa(newSecret),
                         sha: currentSha
                     })
                 });
 
                 if (updateRes.ok) {
-                    // 4. Tính toán Key hiển thị cho người dùng (Giống công thức trong App)
                     const today = new Date().toISOString().slice(0, 10);
                     const raw = deviceId + newSecret + today;
                     const hash = CryptoJS.SHA256(raw).toString().toUpperCase();
                     const finalKey = `Sifex-Ping-${hash.substring(0, 4)}-${hash.substring(4, 8)}`;
                     
-                    // Hiển thị giao diện hoàn tất
                     document.getElementById('loader').style.display = 'none';
                     document.getElementById('status-text').style.display = 'none';
                     document.getElementById('step-result').style.display = 'block';
                     document.getElementById('final-key').innerText = finalKey;
                 } else {
-                    throw new Error("Không thể cập nhật máy chủ GitHub.");
+                    throw new Error("Ghi file GitHub thất bại");
                 }
             } catch (err) {
                 document.getElementById('loader').style.display = 'none';
